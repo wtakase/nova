@@ -6067,3 +6067,24 @@ def pci_device_update(context, node_id, address, values):
         device.update(values)
         session.add(device)
     return device
+
+
+@require_admin_context
+def netcluster_get_by_host(context, host):
+    result = model_query(context, models.CernNetwork.netcluster,
+                 read_deleted="no", base_model=models.CernNetwork).\
+                 filter_by(host=host).\
+                 first()
+    if not result:
+        raise exception.HostNotFound(host=host)
+
+    return result[0]
+
+
+@require_admin_context
+def netcluster_count_free_ips(context, netcluster):
+    return model_query(context, models.FixedIp, read_deleted="no").\
+               filter_by(netcluster=netcluster).\
+               filter_by(allocated=0).\
+               count()
+
