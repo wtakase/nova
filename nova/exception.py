@@ -1547,3 +1547,45 @@ class InvalidWatchdogAction(Invalid):
 class NoBlockMigrationForConfigDriveInLibVirt(NovaException):
     msg_fmt = _("Block migration of instances with config drives is not "
                 "supported in libvirt.")
+
+# CERN
+class CernProjectTargetCell(NovaException):
+    msg_fmt = _("Failed to select available cell.")
+
+
+class CernDNS(NovaException):
+    msg_fmt = _("Failed to update DNS.")
+
+
+class CernNetwork(NovaException):
+    msg_fmt = _("Network inconsistency.")
+
+
+class CernHostnameWrong(NovaException):
+    msg_fmt = _("Invalid hostname.")
+
+
+class CernInvalidHostname(Invalid):
+    msg_fmt = _("Invalid hostname.")
+    code = 404
+
+
+class CernInvalidUser(Invalid):
+    msg_fmt = _("Invalid user.")
+    code = 404
+
+
+class CernInvalidEgroup(Invalid):
+    msg_fmt = _("Invalid egroup.")
+    code = 404
+
+
+class CernInvalidUserEgroup(Invalid):
+    msg_fmt = _("Invalid user or egroup.")
+    code = 404
+
+
+class CernLanDB(NovaException):
+    msg_fmt = _("Unable to connect to LanDB")
+
+# CERN
