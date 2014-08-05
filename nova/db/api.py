@@ -1923,3 +1923,13 @@ def archive_deleted_rows_for_table(context, tablename, max_rows=None):
     """
     return IMPL.archive_deleted_rows_for_table(context, tablename,
                                                max_rows=max_rows)
+
+
+def netcluster_get_by_host(context, host):
+    """Get host netcluster """
+    return IMPL.netcluster_get_by_host(context, host)
+
+
+def netcluster_count_free_ips(context, netcluster):
+    """Get free IPs per netcluster"""
+    return IMPL.netcluster_count_free_ips(context, netcluster)
