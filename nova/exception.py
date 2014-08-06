@@ -1589,6 +1589,11 @@ class CernInvalidUserEgroup(Invalid):
     code = 404
 
 
+class CernInvalidDevice(Invalid):
+    msg_fmt = _("Invalid device.")
+    code = 404
+
+
 class CernLanDB(NovaException):
     msg_fmt = _("Unable to connect to LanDB")
 

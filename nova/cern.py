@@ -21,6 +21,7 @@ from nova import exception
 import ldap
 import time
 import random
+import socket
 import string
 import suds.client
 from suds.xsd.doctor import ImportDoctor, Import
@@ -316,8 +317,20 @@ class Xldap:
             LOG.error(_("Cannot verify if EGROUP exists. %s" % str(e)))
             raise exception.CernInvalidEgroup()
 
-    def device_exists(self):
-        pass
+    def device_exists(self, device):
+        """Check if device exists in Xldap"""
+        try:
+            searchFilter = "(&(name="+device+"))"
+            ldap_result_id = self.client.search(baseDN, self.searchScope,
+                        searchFilter, self.retrieveAttributes)
+            result_type, result_data = self.client.result(ldap_result_id, 0)
+            if (result_data == []):
+                return False
+            if result_type == ldap.RES_SEARCH_ENTRY:
+                return device
+        except Exception as e:
+            LOG.error(_("Cannot verify if device exists. %s" % str(e)))
+            raise exception.CernInvalidDevice()
 
 class ActiveDirectory():
     def __init__(self):
@@ -331,4 +344,12 @@ class ActiveDirectory():
         except Exception as e:
             LOG.error(_("Cannot check if VM is in AD. %s" % str(e)))
             raise exception.CernActiveDirectory()
+
+class Dns():
+    def gethostbyname(self, hostname):
+        try:
+            socket.gethostbyname(hostname)
+            return hostname
+        except:
+            return False
 # CERN
