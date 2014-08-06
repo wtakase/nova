@@ -6069,6 +6069,89 @@ def pci_device_update(context, node_id, address, values):
     return device
 
 
+# CERN
+@require_context
+def cern_fixed_host_bulk_create(_context, hosts):
+    session = get_session()
+    with session.begin():
+        for host in hosts:
+            model = models.CernNetwork()
+            model.update(host)
+            session.add(model)
+
+
+@require_context
+def cern_netcluster_get(context, xhost):
+    session = get_session()
+    return session.query(models.CernNetwork).\
+                   filter_by(host=xhost).\
+                   first()
+
+
+@require_context
+def cern_mac_ip_get(context, xipservice, host):
+    session = get_session()
+    with session.begin():
+        fixed_ip_ref = session.query(models.FixedIp).\
+                               filter_by(reserved=False).\
+                               filter_by(deleted=False).\
+                               filter_by(allocated=False).\
+                               filter_by(netcluster=xipservice).\
+                               with_lockmode('update').\
+                               first()
+
+        if not fixed_ip_ref:
+            raise exception.NoMoreFixedIps()
+
+        if host:
+            fixed_ip_ref.host = host
+        session.add(fixed_ip_ref)
+    return fixed_ip_ref
+
+
+@require_context
+def cern_ignore_hosts(context, xipservice):
+    session = get_session()
+    rows = session.query(models.CernNetwork).\
+           filter(models.CernNetwork.netcluster != xipservice).\
+           all()
+
+    hosts = []
+    for r in rows:
+        hosts.append(r['host'].lower())
+
+    return hosts
+
+
+@require_context
+def cern_fixed_ip_get_by_address(context, xip):
+    session = get_session()
+    ips = session.query(models.FixedIp).\
+           filter(models.FixedIp.address == xip).\
+           first()
+
+    if not ips:
+        return None
+
+    return ips
+
+
+@require_admin_context
+def aggregate_metadata_get_all_by_key(context, key=None):
+    query = model_query(context, models.Aggregate).join(
+            "_metadata")
+    if key:
+        query = query.filter(models.AggregateMetadata.key == key)
+    rows = query.all()
+
+    metadata = collections.defaultdict(set)
+    for aggr in rows:
+        for kv in aggr._metadata:
+            if not key or kv['key'] == key:
+                metadata[kv['key']].add(kv['value'])
+    return metadata
+
+
 @require_admin_context
 def netcluster_get_by_host(context, host):
     result = model_query(context, models.CernNetwork.netcluster,
@@ -6087,4 +6170,4 @@ def netcluster_count_free_ips(context, netcluster):
                filter_by(netcluster=netcluster).\
                filter_by(allocated=0).\
                count()
-
+# CERN
