@@ -41,7 +41,7 @@ class LanDB:
 
     def __auth(self, username=None, password=None):
         """Authenticates in landb"""
-        url = 'https://network.cern.ch/sc/soap/soap.fcgi?v=4&WSDL'
+        url = 'https://network.cern.ch/sc/soap/soap.fcgi?v=5&WSDL'
         imp = Import('http://schemas.xmlsoap.org/soap/encoding/')
         d = ImportDoctor(imp)
         client = Client(url, doctor=d)
@@ -212,6 +212,15 @@ class LanDB:
              msg = _("%s - The device already exists or is not "
                      "a valid hostname" % str(alias))
              raise exception.CernInvalidHostname(msg)
+
+
+    def ipv6ready_update(self, device, boolean):
+        """Update ipv6 ready flag"""
+        try:
+            self.client.service.deviceUpdateIPv6Ready(device, boolean)
+        except Exception as e:
+            LOG.error(_("Cannot change IPv6-ready: %s" % str(e)))
+            raise exception.CernLanDB()
 
 
     def __set_alias(self, device, alias):
