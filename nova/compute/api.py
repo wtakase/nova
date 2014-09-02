@@ -2988,7 +2988,7 @@ class API(base.Base):
             client.alias_update(instance['hostname'], new_alias)
 
         if 'landb-ipv6ready' in metadata.keys():
-            if metadata['landb-ipv6ready'].lower() == 'true'):
+            if metadata['landb-ipv6ready'].lower() == 'true':
                 client.ipv6ready_update(instance['hostname'], True)
             else:
                 client.ipv6ready_update(instance['hostname'], False)
