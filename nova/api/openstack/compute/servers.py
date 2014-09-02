@@ -834,7 +834,7 @@ class Controller(wsgi.Controller):
             msg = "Hostname already in use"
             raise exc.HTTPBadRequest(explanation=msg)
 
-        if not client_dns.gethostbyname(name)
+        if not client_dns.gethostbyname(name):
             pass
         else:
             msg = "Hostname already in DNS"
