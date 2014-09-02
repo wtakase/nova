@@ -20,7 +20,7 @@ AVZ target cell filter.
 from nova.cells import filters
 
 
-class TargetCellProjectFilter(filters.BaseCellFilter):
+class TargetCellAVZFilter(filters.BaseCellFilter):
     """Target Cell AVZ Filter"""
 
     def filter_all(self, cells, filter_properties):
