@@ -2166,7 +2166,7 @@ class CernManager(NetworkManager):
         return self.get_instance_nw_info(context, instance_uuid, rxtx_factor,
                                          host)
 
-    def deallocate_fixed_ip(self, context, address, host, teardown=True):
+    def deallocate_fixed_ip(self, context, address, host, teardown=True, instance=None):
         """Deallocate ip and vif"""
 
         self._deallocate_address(context, address, host, teardown)
@@ -2208,9 +2208,6 @@ class CernManager(NetworkManager):
                   'virtual_interface_id': vifx['id'],
                   'instance_uuid': instance_uuid}
         self.db.fixed_ip_update(admin_context, vm_ip, values)
-
-        if not CONF.cern_landb:
-            return
 
         client_landb = cern.LanDB()
         client_xldap = cern.Xldap()
