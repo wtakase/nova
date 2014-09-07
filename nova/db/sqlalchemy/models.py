@@ -857,6 +857,7 @@ class FixedIp(BASE, NovaBase):
 # CERN
     mac = Column(String(255), unique=True)
     netcluster = Column(String(255))
+    address_v6 = Column(String(255))
 # CERN
 
 # CERN
