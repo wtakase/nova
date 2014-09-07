@@ -89,6 +89,10 @@ from nova.virt import storage_users
 from nova.virt import virtapi
 from nova import volume
 from nova.volume import encryptors
+# CERN
+import time
+from nova import cern
+# CERN
 
 
 compute_opts = [
@@ -175,6 +179,11 @@ timeout_opts = [
                default=0,
                help="Automatically confirm resizes after N seconds. "
                     "Set to 0 to disable."),
+# CERN
+    cfg.IntOpt('landb_dns_timeout',
+               default=1200,
+               help="DNS timeout in seconds.")
+# CERN
 ]
 
 running_deleted_opts = [
@@ -1174,6 +1183,35 @@ class ComputeManager(manager.Manager):
 
         return [_decode(f) for f in injected_files]
 
+# CERN
+    def _cern_ready(self, context, instance):
+        if instance['hostname'] == "server-"+str(instance['uuid']):
+            return
+
+        instance_hostname = str(instance['hostname'])
+        meta = self.conductor_api.instance_metadata_get(context,
+                                                        instance['uuid'])
+        if ('cern-services' in meta.keys()\
+            and meta['cern-services'].lower() != 'false')\
+            or ('cern-services' not in meta.keys()):
+            time.sleep(5)
+            client = cern.ActiveDirectory()
+            client.register(instance_hostname)
+
+            wait_time = 0
+            while(wait_time < CONF.landb_dns_timeout):
+                try:
+                    socket.gethostbyname(instance_hostname)
+                    break
+                except:
+                    LOG.info(_("Waiting for DNS - %s" % instance['uuid']))
+                    time.sleep(15)
+                    wait_time=wait_time+15
+            else:
+                LOG.error(_("DNS update failed - %s" % instance['uuid']))
+                raise exception.CernDNS()
+# CERN
+
     def _run_instance(self, context, request_spec,
                       filter_properties, requested_networks, injected_files,
                       admin_password, is_first_time, node, instance,
@@ -1304,7 +1342,9 @@ class ComputeManager(manager.Manager):
                 network_info = self._allocate_network(context, instance,
                         requested_networks, macs, security_groups,
                         dhcp_options)
-
+# CERN
+                self._cern_ready(context, instance)
+# CERN
                 self._instance_update(
                         context, instance['uuid'],
                         vm_state=vm_states.BUILDING,
