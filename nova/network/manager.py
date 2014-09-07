@@ -1970,13 +1970,19 @@ class CernManager(NetworkManager):
 
     def _setup_network_on_host(self, context, network):
         """Setup Network on this host."""
-        net = {}
-        net['injected'] = CONF.flat_injected
-        self.db.network_update(context, network['id'], net)
+        # NOTE(tr3buchet): this does not need to happen on every ip
+        # allocation, this functionality makes more sense in create_network
+        # but we'd have to move the flat_injected flag to compute
+        network.injected = CONF.flat_injected
+        network.save()
 
     def _teardown_network_on_host(self, context, network):
         """Tear down network on this host."""
         pass
+
+    # NOTE(justinsb): The floating ip functions are stub-implemented.
+    # We were throwing an exception, but this was messing up horizon.
+    # Timing makes it difficult to implement floating ips here, in Essex.
 
     def get_floating_ip(self, context, id):
         """Returns a floating IP as a dict."""
@@ -2140,25 +2146,25 @@ class CernManager(NetworkManager):
     def allocate_for_instance(self, context, **kwargs):
 
         instance_uuid = kwargs['instance_id']
+        if not uuidutils.is_uuid_like(instance_uuid):
+            instance_uuid = kwargs.get('instance_uuid')
         host = kwargs['host']
         project_id = kwargs['project_id']
         rxtx_factor = kwargs['rxtx_factor']
         requested_networks = kwargs.get('requested_networks')
         vpn = kwargs['vpn']
         admin_context = context.elevated()
-        LOG.debug(_("network allocations"), instance_uuid=instance_uuid,
-                  context=context)
+
         networks = self._get_networks_for_instance(admin_context,
                                         instance_uuid, project_id,
                                         requested_networks=requested_networks)
-        LOG.debug(_('networks retrieved for instance: |%(networks)s|'),
-                  locals(), context=context, instance_uuid=instance_uuid)
+        networks_list = [self._get_network_dict(network)
+                                 for network in networks]
+        LOG.debug(_('networks retrieved for instance: |%s|'),
+                  networks_list, context=context, instance_uuid=instance_uuid)
 
-        vm_hostname = (self.db.instance_get_by_uuid(context, instance_uuid))['hostname']
-        vm_display = (self.db.instance_get_by_uuid(context, instance_uuid))['display_name']
-        if vm_hostname.lower() != vm_display.lower():
-            LOG.error(_("Hostname is not valid: %s - %s" % (vm_hostname.lower(), vm_display.lower())))
-            raise exception.CernHostnameWrong()
+        vm_hostname = (self.db.instance_get_by_uuid(context, 
+                                                    instance_uuid))['hostname']
 
         self._allocate_address(admin_context, instance_uuid, host, networks,
                                vm_hostname.lower())
@@ -2166,7 +2172,8 @@ class CernManager(NetworkManager):
         return self.get_instance_nw_info(context, instance_uuid, rxtx_factor,
                                          host)
 
-    def deallocate_fixed_ip(self, context, address, host, teardown=True, instance=None):
+    def deallocate_fixed_ip(self, context, address, host, teardown=True, 
+                            instance=None):
         """Deallocate ip and vif"""
 
         self._deallocate_address(context, address, host, teardown)
@@ -2175,13 +2182,13 @@ class CernManager(NetworkManager):
                           vm_name):
         """Allocates instance address."""
 
-        ipservice =  self.db.cern_netcluster_get(admin_context, host)
+        nw_cluster = self.db.cern_netcluster_get(admin_context, 
+                                                 host)['netcluster']
 
         for i in range(20):
-            cern_address = self.db.cern_mac_ip_get(admin_context,
-                                                 ipservice['netcluster'], host)
-            vm_ip = cern_address['address']
-            vm_mac = cern_address['mac']
+            fixed_ip = self.db.cern_mac_ip_get(admin_context, nw_cluster, host)
+            vm_ip = fixed_ip['address']
+            vm_mac = fixed_ip['mac']
             network = networks[0]
 
             LOG.info(_("Selected IP |%s| and MAC |%s| for instance |%s| "
@@ -2197,6 +2204,7 @@ class CernManager(NetworkManager):
             except Exception as e:
                 LOG.info(_("IP |%s| and MAC |%s| for instance |%s| was already "
                 "reserved. Selecting other." % (vm_ip, vm_mac, instance_uuid)))
+                time.sleep(0.2)
                 continue
             break
         else:
@@ -2238,7 +2246,8 @@ class CernManager(NetworkManager):
             image_id = (self.db.instance_get_by_uuid(admin_context,
                                                 instance_uuid))['image_ref']
         except Exception as e:
-            LOG.info(_("Cannot get image id for instance %s - %s" % (str(instance_uuid), str(e))))
+            LOG.info(_("Cannot get image id for instance %s - %s" % 
+                (str(instance_uuid), str(e))))
 
         if image_id:
             image_service = nova.image.glance.get_default_image_service()
@@ -2265,8 +2274,6 @@ class CernManager(NetworkManager):
         landb_mainuser = {'PersonID':person_id}
 
         if 'landb-mainuser' in metadata.keys():
-            landb_update = True
-
             user_id = client_xldap.user_exists(metadata['landb-mainuser'])
             egroup_id = client_xldap.egroup_exists(metadata['landb-mainuser'])
 
@@ -2279,8 +2286,6 @@ class CernManager(NetworkManager):
                 raise exception.CernInvalidUserEgroup()
 
         if 'landb-responsible' in metadata.keys():
-            landb_update = True
-
             user_id = client_xldap.user_exists(metadata['landb-responsible'])
             egroup_id = client_xldap.egroup_exists(metadata['landb-responsible'])
 
@@ -2294,7 +2299,6 @@ class CernManager(NetworkManager):
 
         landb_description = ""
         if 'landb-description' in metadata.keys():
-            landb_update = True
             landb_description = metadata['landb-description']
 
         client_landb.vm_update(device_name,
@@ -2304,6 +2308,12 @@ class CernManager(NetworkManager):
                                responsible_person=landb_responsible,
                                user_person=landb_mainuser)
 
+        if 'cern-ipv6ready' in metadata.keys():
+            if metadata['cern-ipv6ready'].lower() == 'true':
+                client_landb.ipv6ready_update(vm_name, True)
+            else:
+                client_landb.ipv6ready_update(vm_name, False)
+
         if 'landb-alias' in metadata.keys():
             new_alias = [x.strip() for x in metadata['landb-alias'].split(',')]
             client_landb.alias_update(vm_name, new_alias)
@@ -2311,7 +2321,8 @@ class CernManager(NetworkManager):
             client_landb.alias_update(vm_name, [])
 
 
-    def _deallocate_address(self, context, address, host, teardown):
+    def _deallocate_address(self, context, address, host=None, teardown=True,
+                            instance=None):
 
         fixed_ip_ref = self.db.fixed_ip_get_by_address(context, address)
         vif_id = fixed_ip_ref['virtual_interface_id']
