@@ -2948,6 +2948,53 @@ class API(base.Base):
                           task_state=None)
     def delete_instance_metadata(self, context, instance, key):
         """Delete the given metadata item from an instance."""
+#  CERN
+        landb_update = False
+        landb_description = None
+        landb_responsible = None
+        landb_mainuser = None
+
+        if key == 'landb-alias':
+            client = cern.LanDB()
+            client.alias_update(instance['hostname'], [])
+
+        if key == 'landb-ipv6ready':
+            client = cern.LanDB()
+            client.ipv6ready_update(instance['hostname'], False)
+
+        if key == 'landb-mainuser':
+            landb_update = True
+
+            client = cern.Xldap()
+            user_id = client.user_exists(instance['user_id'])
+
+            if user_id:
+                landb_mainuser = {'PersonID':user_id}
+            else:
+                LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                raise exception.CernInvalidUserEgroup()
+
+        if key == 'landb-responsible':
+            landb_update = True
+
+            client = cern.Xldap()
+            user_id = client.user_exists(instance['user_id'])
+
+            if user_id:
+                landb_responsible = {'PersonID':user_id}
+            else:
+                LOG.error(_("Cannot find user/egroup for responsible user. %s" % str(e)))
+                raise exception.CernInvalidUserEgroup()
+
+        if key == 'landb-description':
+            landb_update = True
+            landb_description = ''
+
+        if landb_update == True:
+            client = cern.LanDB()
+            client.vm_update(instance['hostname'], description=landb_description,
+                responsible_person=landb_responsible, user_person=landb_mainuser)
+# CERN
         instance.delete_metadata_key(key)
         self.compute_rpcapi.change_instance_metadata(context,
                                                      instance=instance,

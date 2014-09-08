@@ -2163,7 +2163,7 @@ class CernManager(NetworkManager):
         LOG.debug(_('networks retrieved for instance: |%s|'),
                   networks_list, context=context, instance_uuid=instance_uuid)
 
-        vm_hostname = (self.db.instance_get_by_uuid(context, 
+        vm_hostname = (self.db.instance_get_by_uuid(context,
                                                     instance_uuid))['hostname']
 
         self._allocate_address(admin_context, instance_uuid, host, networks,
@@ -2172,7 +2172,7 @@ class CernManager(NetworkManager):
         return self.get_instance_nw_info(context, instance_uuid, rxtx_factor,
                                          host)
 
-    def deallocate_fixed_ip(self, context, address, host, teardown=True, 
+    def deallocate_fixed_ip(self, context, address, host, teardown=True,
                             instance=None):
         """Deallocate ip and vif"""
 
@@ -2182,7 +2182,7 @@ class CernManager(NetworkManager):
                           vm_name):
         """Allocates instance address."""
 
-        nw_cluster = self.db.cern_netcluster_get(admin_context, 
+        nw_cluster = self.db.cern_netcluster_get(admin_context,
                                                  host)['netcluster']
 
         for i in range(20):
@@ -2246,7 +2246,7 @@ class CernManager(NetworkManager):
             image_id = (self.db.instance_get_by_uuid(admin_context,
                                                 instance_uuid))['image_ref']
         except Exception as e:
-            LOG.info(_("Cannot get image id for instance %s - %s" % 
+            LOG.info(_("Cannot get image id for instance %s - %s" %
                 (str(instance_uuid), str(e))))
 
         if image_id:
@@ -2308,8 +2308,8 @@ class CernManager(NetworkManager):
                                responsible_person=landb_responsible,
                                user_person=landb_mainuser)
 
-        if 'cern-ipv6ready' in metadata.keys():
-            if metadata['cern-ipv6ready'].lower() == 'true':
+        if 'landb-ipv6ready' in metadata.keys():
+            if metadata['landb-ipv6ready'].lower() == 'true':
                 client_landb.ipv6ready_update(vm_name, True)
             else:
                 client_landb.ipv6ready_update(vm_name, False)
