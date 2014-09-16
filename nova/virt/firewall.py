@@ -168,14 +168,8 @@ class IptablesFirewallDriver(FirewallDriver):
         self.iptables.defer_apply_off()
 
     def unfilter_instance(self, instance, network_info):
-        if self.instances.pop(instance['id'], None):
-            # NOTE(vish): use the passed info instead of the stored info
-# CERN
-            self.network_infos.pop(instance['id'])
-            self.network_infos[instance['id']] = network_info
+        if self.instance_info.pop(instance['id'], None):
             self.remove_filters_for_instance(instance)
-            self.network_infos.pop(instance['id'])
-# CERN
             self.iptables.apply()
         else:
             LOG.info(_('Attempted to unfilter instance which is not '
@@ -270,14 +264,15 @@ class IptablesFirewallDriver(FirewallDriver):
         if CONF.use_ipv6:
             self.iptables.ipv6['filter'].remove_chain(chain_name)
 # CERN
-        network_info = self.network_infos[instance['id']]
         try:
+            instance, network_info = self.instance_info[instance['id']]
             v4_subnets = self._get_subnets(network_info, 4)
             ips_v4 = [ip['address'] for subnet in v4_subnets
                                 for ip in subnet['ips']]
             self.iptables.ipv4['filter'].remove_rule('FORWARD', '-s %s -d 0.0.0.0/0 -j ACCEPT' % (ips_v4[0],))
         except Exception as e:
             LOG.warn(_("Cannot remove firewall rule. %s" % str(e)))
+        self.instance_info.pop(instance['id'], None)
 # CERN
 
     def _instance_chain_name(self, instance):
