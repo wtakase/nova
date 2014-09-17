@@ -2353,5 +2353,9 @@ class CernManager(NetworkManager):
         client_landb = cern.LanDB()
         device_name = client_landb.device_hostname(address)
         client_landb.vm_delete(device_name)
+
+        time.sleep(1)
+        client_ad = cern.ActiveDirectory()
+        client_ad.delete(device_name)
 # CERN
 

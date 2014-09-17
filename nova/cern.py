@@ -354,6 +354,14 @@ class ActiveDirectory():
             LOG.error(_("Cannot check if VM is in AD. %s" % str(e)))
             raise exception.CernActiveDirectory()
 
+    def delete(self, hostname):
+        try:
+            result = self.client.service.DeleteComputer(hostname)
+            if result != None:
+                LOG.error(_("AD delete failed - %s - %s" % (hostname, result)))
+        except Exception as e:
+            LOG.error(_("Cannot delete VM from AD. %s" % str(e)))
+
 class Dns():
     def gethostbyname(self, hostname):
         try:
