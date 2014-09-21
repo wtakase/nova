@@ -64,12 +64,8 @@ class LanDB:
         client = Client(url, doctor=d)
 
         if username == None or password == None:
-            try:
-                username = CONF.landb_username
-                password = CONF.landb_password
-            except Exception as e:
-                LOG.error(_("Cannot get landb credentials."))
-                raise exception.CernNetwork()
+            username = CONF.landb_username
+            password = CONF.landb_password
 
         try:
             token = client.service.getAuthToken(username,password,'CERN')
@@ -77,7 +73,7 @@ class LanDB:
             client.set_options(soapheaders=myheader)
         except Exception as e:
             LOG.error(_("Cannot authenticate in landb: %s" % str(e)))
-            raise exception.CernLanDB()
+            raise exception.CernLanDBAuthentication()
 
         return client
 
@@ -132,7 +128,7 @@ class LanDB:
                         'UserPerson':user_person})
         except Exception as e:
             LOG.error(_("Cannot update landb: %s" % str(e)))
-            raise exception.CernLanDB()
+            raise exception.CernLanDBUpdate()
 
 
     def vm_migrate(self, device, parent):
@@ -175,7 +171,7 @@ class LanDB:
                 responsible_person=responsible, user_person=user_person)
         except Exception as e:
             LOG.error(_("Cannot delete vm from landb: %s" % str(e)))
-            raise exception.CernLanDB()
+            raise exception.CernLanDBUpdate()
 
 
     def device_exists(self, device):
@@ -193,7 +189,7 @@ class LanDB:
             device = (self.client.service.searchDevice({'IPAddress':address}))[0]
         except Exception as e:
             LOG.error(_("Cannot find device with IP: %s" % str(e)))
-            raise exception.CernInvalidHostname('')
+            raise exception.CernDeviceNotFound('')
         return device
 
 
@@ -235,7 +231,7 @@ class LanDB:
             self.client.service.deviceUpdateIPv6Ready(device, boolean)
         except Exception as e:
             LOG.error(_("Cannot change IPv6-ready: %s" % str(e)))
-            raise exception.CernLanDB()
+            raise exception.CernLanDBUpdate()
 
 
     def __set_alias(self, device, alias):
@@ -244,7 +240,7 @@ class LanDB:
             self.client.service.interfaceAddAlias(device, alias)
         except Exception as e:
             LOG.error(_("Cannot set alias in landb: %s" % str(e)))
-            raise exception.CernLanDB()
+            raise exception.CernLanDBUpdate()
 
 
     def __unset_alias(self, device, alias):
@@ -253,7 +249,7 @@ class LanDB:
             self.client.service.interfaceRemoveAlias(device, alias)
         except Exception as e:
             LOG.error(_("Cannot unset alias in landb: %s" % str(e)))
-            raise exception.CernLanDB()
+            raise exception.CernLanDBUpdate()
 
 
     def vmClusterGetDevices(self, cluster):
