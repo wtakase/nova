@@ -13,10 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging as pylog
-from nova.openstack.common.gettextutils import _
-from nova.openstack.common import log as logging
-from nova import exception
 
 import ldap
 import time
@@ -24,8 +20,29 @@ import random
 import socket
 import string
 import suds.client
+
 from suds.xsd.doctor import ImportDoctor, Import
 from suds.client import Client
+
+import logging as pylog
+from nova import exception
+from nova.openstack.common.gettextutils import _
+from nova.openstack.common import log as logging
+from oslo.config import cfg
+
+
+cern_network_opts = [
+    cfg.StrOpt('landb_username',
+        default='', secret=True,
+        help='landb username'),
+    cfg.StrOpt('landb_password',
+        default='', secret=True,
+        help='landb password')
+]
+
+CONF = cfg.CONF
+CONF.register_opts(cern_network_opts)
+
 
 LOG = logging.getLogger(__name__)
 pylog.getLogger('suds.client').setLevel(pylog.CRITICAL)
@@ -46,14 +63,12 @@ class LanDB:
         d = ImportDoctor(imp)
         client = Client(url, doctor=d)
 
-        if (username == None or password == None):
+        if username == None or password == None:
             try:
-                file = open('/etc/sysconfig/nova_network', 'r')
-                (username, password) = (file.readline()).split(' ')
-                password = password.rstrip("\n")
-                file.close()
+                username = CONF.landb_username
+                password = CONF.landb_password
             except Exception as e:
-                LOG.error(_("Cannot find landb credentials: %s" % str(e)))
+                LOG.error(_("Cannot get landb credentials."))
                 raise exception.CernNetwork()
 
         try:
