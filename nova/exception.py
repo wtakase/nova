@@ -1566,7 +1566,7 @@ class CernHostnameWrong(NovaException):
 
 
 class CernInvalidHostname(Invalid):
-    msg_fmt = _("Invalid hostname.")
+    msg_fmt = _("Device already exists or is not a valid hostname.")
     code = 404
 
 
@@ -1590,7 +1590,19 @@ class CernInvalidDevice(Invalid):
     code = 404
 
 
+class CernDeviceNotFound(NovaException):
+    msg_fmt = _("Device not found.")
+
+
 class CernLanDB(NovaException):
     msg_fmt = _("Unable to connect to LanDB")
+
+
+class CernLanDBAuthentication(NovaException):
+    msg_fmt = _("Unable to authenticate to LanDB")
+
+
+class CernLanDBUpdate(NovaException):
+    msg_fmt = _("Unable to update LanDB")
 
 # CERN
