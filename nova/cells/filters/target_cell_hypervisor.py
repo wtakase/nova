@@ -35,7 +35,7 @@ class TargetCellHypervisorFilter(filters.BaseCellFilter):
             'hypervisor_type')
 
         if hypervisor_type == None:
-            hypervisor_type = 'kvm'
+            hypervisor_type = 'qemu'
 
         filtered_cells = []
 
