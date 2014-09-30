@@ -361,8 +361,8 @@ class ActiveDirectory():
         try:
             if self.client.service.CheckComputer(hostname) != None:
                 LOG.error(_("AD update failed - %s" % hostname))
+                raise exception.CernActiveDirectory()
         except Exception as e:
-            LOG.error(_("Cannot check if VM is in AD. %s" % str(e)))
             raise exception.CernActiveDirectory()
 
     def delete(self, hostname):
