@@ -798,6 +798,8 @@ class Controller(wsgi.Controller):
 
         image_uuid = self._image_from_req_data(body)
 # CERN
+        LOG.info("Request to create instance: %s" % name)
+
         if len(name) > 64:
             msg = "Instance name too long"
             raise exc.HTTPBadRequest(explanation=msg)
@@ -1288,6 +1290,9 @@ class Controller(wsgi.Controller):
     @wsgi.response(204)
     def delete(self, req, id):
         """Destroys a server."""
+# CERN
+        LOG.info("Request to delete instance: %s" % id)
+# CERN
         try:
             self._delete(req.environ['nova.context'], req, id)
         except exception.NotFound:
