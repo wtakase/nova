@@ -33,7 +33,7 @@ class TargetCellCCentreFilter(filters.BaseCellFilter):
         request_spec = filter_properties.get('request_spec', {})
         instance_properties = request_spec['instance_properties']
         instance_metadata = instance_properties['metadata']
-        instance_ccentre = instance_metadata.get('cern-ccentre')
+        instance_ccentre = instance_metadata.get('cern-datacentre')
 
         if instance_ccentre == None:
             return cells
@@ -41,7 +41,7 @@ class TargetCellCCentreFilter(filters.BaseCellFilter):
         filtered_cells = []
 
         for cell in cells:
-            cell_ccentre = cell.capabilities.get('ccentre')
+            cell_ccentre = cell.capabilities.get('datacentre')
             if cell_ccentre != None:
                 if instance_ccentre in cell_ccentre:
                     filtered_cells.append(cell)
