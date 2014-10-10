@@ -2126,6 +2126,7 @@ class CernManager(NetworkManager):
                 raise exception.CernNetwork()
 
             ip = vm_info.Interfaces[0].IPAddress.__str__()
+            ipv6 = vm_info.Interfaces[0].IPv6Address.__str__()
             mac = (vm_info.NetworkInterfaceCards[0].HardwareAddress.__str__()).replace('-', ':')
 
             if self.db.cern_fixed_ip_get_by_address(context, ip) == None:
@@ -2133,6 +2134,7 @@ class CernManager(NetworkManager):
 
                 fixed_ips.append({'network_id': '1',
                                   'address': ip,
+                                  'address_v6': ipv6,
                                   'reserved': False,
                                   'mac': mac,
                                   'netcluster': cluster_name})
