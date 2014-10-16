@@ -33,12 +33,13 @@ cern_network = Table('cern_network', meta,
         Column('id', Integer, primary_key=True),
         Column('netcluster', String(255)),
         Column('host', String(255)),
+        Column('address_v6', String(255)),
         )
 
 # (fixed_ips)
 column_mac = Column('mac',  String(255))
 column_netcluster = Column('netcluster',  String(255))
-column_address_v6 = Column('netcluster',  String(255))
+column_address_v6 = Column('address_v6',  String(255))
 
 
 def upgrade(migrate_engine):
