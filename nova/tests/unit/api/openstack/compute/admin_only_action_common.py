@@ -118,6 +118,9 @@ class CommonMixin(object):
                             compute_api_args_map=None):
         if method is None:
             method = action
+        if method == 'live_migrate':
+            self.mox.StubOutWithMock(self.context, 'elevated')
+            self.context.elevated().AndReturn(self.context)
         if body_map is None:
             body_map = {}
         if compute_api_args_map is None:
@@ -149,6 +152,9 @@ class CommonMixin(object):
                               compute_api_args_map=None):
         if method is None:
             method = action
+        if method == 'live_migrate':
+            self.mox.StubOutWithMock(self.context, 'elevated')
+            self.context.elevated().AndReturn(self.context)
 
         compute_api_args_map = compute_api_args_map or {}
         instance = self._stub_instance_get()

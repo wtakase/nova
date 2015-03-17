@@ -336,7 +336,10 @@ class AdminActionsController(wsgi.Controller):
         instance = common.get_instance(self.compute_api, context, id,
                                        want_objects=True)
         try:
-            self.compute_api.live_migrate(context, instance, block_migration,
+            # NOTE(wtakase): Set context.is_admin flag to True by elevation.
+            #                We've already applied policy so it's safe.
+            self.compute_api.live_migrate(context.elevated(),
+                                          instance, block_migration,
                                           disk_over_commit, host)
         except (exception.NoValidHost,
                 exception.ComputeServiceUnavailable,

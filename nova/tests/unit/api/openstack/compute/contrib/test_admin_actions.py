@@ -12,6 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 
+from oslo.serialization import jsonutils
 import webob
 
 from nova.api.openstack.compute.contrib import admin_actions as \
@@ -20,12 +21,21 @@ from nova.api.openstack.compute.plugins.v3 import admin_actions as \
     admin_actions_v21
 from nova.compute import vm_states
 import nova.context
+from nova.db.sqlalchemy import api as db_api
 from nova import exception
 from nova import objects
 from nova.openstack.common import uuidutils
+from nova.openstack.common import policy as common_policy
+from nova import policy
 from nova import test
 from nova.tests.unit.api.openstack.compute import admin_only_action_common
 from nova.tests.unit.api.openstack import fakes
+
+
+@db_api.require_admin_context
+def fake_admin_action(context, *args, **kwargs):
+    """This just checks context has admin privilege or not."""
+    return
 
 
 class AdminActionsTestV21(admin_only_action_common.CommonTests):
@@ -153,6 +163,8 @@ class AdminActionsTestV2(AdminActionsTestV21):
         self.assertEqual(expected_result, res.status_int)
 
     def _test_migrate_live_succeeded(self, param):
+        self.mox.StubOutWithMock(self.context, 'elevated')
+        self.context.elevated().AndReturn(self.context)
         self.mox.StubOutWithMock(self.compute_api, 'live_migrate')
         instance = self._stub_instance_get()
         self.compute_api.live_migrate(self.context, instance, False,
@@ -199,6 +211,8 @@ class AdminActionsTestV2(AdminActionsTestV21):
 
     def _test_migrate_live_failed_with_exception(self, fake_exc,
                                                  uuid=None):
+        self.mox.StubOutWithMock(self.context, 'elevated')
+        self.context.elevated().AndReturn(self.context)
         self.mox.StubOutWithMock(self.compute_api, 'live_migrate')
 
         instance = self._stub_instance_get(uuid=uuid)
@@ -265,6 +279,59 @@ class AdminActionsTestV2(AdminActionsTestV21):
     def test_migrate_live_migration_with_old_nova_not_safe(self):
         self._test_migrate_live_failed_with_exception(
             exception.LiveMigrationWithOldNovaNotSafe(server=''))
+
+    def _set_policy_for_migrate_live_not_admin_test(self, policy_str):
+        """Set migrateLive policy."""
+        migrate_live_action = 'compute_extension:admin_actions:migrateLive'
+        rules = common_policy.Rules(
+            {migrate_live_action: common_policy.parse_rule(policy_str)})
+        policy.set_rules(rules)
+
+    def _make_migrate_live_request_with_context(self, context):
+        """Make live migration request with given context."""
+        self.mox.ReplayAll()
+        req = webob.Request.blank('/v2/fake/servers/fake_id/action')
+        req.method = 'POST'
+        req.body = jsonutils.dumps({'os-migrateLive':
+                                    {'host': 'hostname',
+                                     'block_migration': False,
+                                     'disk_over_commit': False}})
+        req.content_type = 'application/json'
+        res = req.get_response(fakes.wsgi_app(init_only=('servers',),
+                                              fake_auth_context=context))
+        self.mox.VerifyAll()
+        self.mox.UnsetStubs()
+        return res
+
+    def test_migrate_live_not_admin_admin_only(self):
+        """If policy grants only admin users to do live migration, a request
+           as non-admin user is denied.
+        """
+        self._set_policy_for_migrate_live_not_admin_test('rule:admin_api')
+        non_admin_context = nova.context.RequestContext('fake', 'fake',
+                                                        is_admin=False)
+        res = self._make_migrate_live_request_with_context(non_admin_context)
+        self.assertIn(
+            unicode(exception.PolicyNotAuthorized(
+                'compute_extension:admin_actions:migrateLive')),
+            res.body)
+        self.assertEqual(403, res.status_int)
+
+    def test_migrate_live_not_admin_anybody(self):
+        """If policy grants non-admin users to do live migration, a request
+           as non-admin user is not denied.
+        """
+        self._set_policy_for_migrate_live_not_admin_test('')
+        non_admin_context = nova.context.RequestContext('fake', 'fake',
+                                                        is_admin=False)
+        self.compute_api.get(non_admin_context, 'fake_id', expected_attrs=None,
+                             want_objects=True).AndReturn('fake_instance')
+        elevated_context = non_admin_context.elevated()
+        self.mox.StubOutWithMock(non_admin_context, 'elevated')
+        non_admin_context.elevated().AndReturn(elevated_context)
+        self.stubs.Set(self.compute_api, 'live_migrate', fake_admin_action)
+        res = self._make_migrate_live_request_with_context(non_admin_context)
+        self.assertEqual(202, res.status_int)
 
 
 class ResetStateTestsV21(test.NoDBTestCase):
